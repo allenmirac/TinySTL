@@ -7,7 +7,7 @@
 
 #include "type_traits.h"
 
-namespace mirstl {
+namespace tinystl {
 // 五种迭代器类型
 // 单向移动只读迭代器 Input Iterator
 // 单向移动只写迭代器 Output Iterator
@@ -311,5 +311,5 @@ public:
         return !(lhs < rhs);
     }
 };
-} // namesapce mirstl
+} // namesapce tinystl
 #endif // MIRTINYSTL_ITERATOR_H_

@@ -5,7 +5,7 @@
 
 #include <type_traits>
 
-namespace mirstl{
+namespace tinystl{
 // helper strutc
 template <class T, T v>
 struct m_integral_constant
@@ -31,10 +31,10 @@ struct pair;
 // --- forward declaration end
 
 template <class T>
-struct is_pair : mirstl::m_false_type {};
+struct is_pair : tinystl::m_false_type {};
 
 template <class T1, class T2>
-struct is_pair<mirstl::pair<T1, T2>> : mirstl::m_true_type {};
-} // namesapce mirstl
+struct is_pair<tinystl::pair<T1, T2>> : tinystl::m_true_type {};
+} // namesapce tinystl
 
 #endif // YAPTINYSTL_TYPE_TRAITS_H_
