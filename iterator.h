@@ -237,11 +237,11 @@ public:
         return tmp;
     }
     // 后退(--)变为前进(++)
-    slef& operator--(){
+    self& operator--(){
         ++current;
         return *this;
     }
-    slef operator--(int){
+    self operator--(int){
         self tmp = *this;
         ++current;
         return tmp;

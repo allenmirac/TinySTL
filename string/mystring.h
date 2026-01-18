@@ -13,6 +13,7 @@ public:
     MyString(const char* str="");
     MyString(const MyString& other);
     MyString& operator=(const MyString& other);
+    
     ~MyString();
 };
 
