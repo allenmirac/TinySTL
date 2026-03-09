@@ -3,421 +3,432 @@
 <div align="center">
 
 ![C++](https://img.shields.io/badge/C++-11/14/17-blue.svg)
+![CMake](https://img.shields.io/badge/CMake-3.10+-green.svg)
 ![License](https://img.shields.io/badge/license-MIT-green.svg)
-![Status](https://img.shields.io/badge/status-In%20Development-yellow.svg)
+![Status](https://img.shields.io/badge/status-Active-success.svg)
 
-**一个用于学习和面试准备的 C++ STL 标准库实现**
+**一个用于学习和面试准备的轻量级 C++ STL 实现**
 
-[English](#) | [中文文档](#)
+[快速开始](#-快速开始) • [特性](#-核心特性) • [文档](#-文档) • [示例](#-使用示例)
 
 </div>
 
 ---
 
-## 📖 项目简介
+## 项目简介
 
-TinySTL 是一个精简的 C++ 标准模板库（STL）实现，旨在帮助深入理解 STL 的设计理念和实现细节。本项目涵盖了 STL 的核心组件：**容器**、**算法**、**迭代器**、**仿函数**、**适配器**和**空间配置器**。
+TinySTL 是一个教育性质的 C++ 标准模板库（STL）实现，旨在帮助深入理解 STL 的设计理念和实现细节。
 
-### 🎯 项目目标
+### 适用人群
 
-- 📚 **学习 STL 源码**：深入理解 STL 的设计思想和实现技巧
-- 💼 **面试准备**：掌握常见的 STL 面试题和核心知识点
-- 🔧 **实践能力**：通过实现提升 C++ 模板元编程能力
-- 🚀 **性能优化**：学习 STL 中的各种优化技术
-
-### ✨ 特性
-
-- ✅ 遵循 C++11/14/17 标准
-- ✅ 清晰的代码注释和文档
-- ✅ 完整的学习路线图（见 [SKILLS.md](SKILLS.md)）
-- ✅ 详细的项目分析报告（见 [PROJECT_ANALYSIS.md](PROJECT_ANALYSIS.md)）
-- ✅ 模块化设计，易于学习和扩展
+- 准备 C++ 技术面试的求职者
+- 学习 STL 源码的开发者
+- 提升模板元编程能力的工程师
+- 理解数据结构和算法实现的学生
 
 ---
 
-## 📂 项目结构
+## 已完成功能
 
+### 🔧 基础设施
+
+| 模块 | 功能 | 状态 |
+|------|------|------|
+| **type_traits.h** | 类型萃取（integral_constant, enable_if, is_same, is_trivially_copyable 等） | ✅ |
+| **iterator.h** | 迭代器系统（五种迭代器类型、iterator_traits、reverse_iterator、distance、advance） | ✅ |
+| **allocator.h** | 空间配置器（分离内存分配和对象构造，支持完美转发） | ✅ |
+| **uninitialized.h** | 未初始化内存操作（uninitialized_copy/fill/move，支持 POD 优化） | ✅ |
+| **utility.h** | 工具函数（move, forward, swap, pair） | ✅ |
+| **algorithm.h** | 基础算法（copy, move, fill, equal, lexicographical_compare, reverse 等） | ✅ |
+
+### 📦 容器
+
+| 容器 | 功能 | 状态 |
+|------|------|------|
+| **vector** | 动态数组（完整实现，支持 C++11 特性） | ✅ |
+| **string** | 字符串（基础框架） | 🔄 |
+| **RB_Tree** | 红黑树（基础实现） | 🔄 |
+| **deque** | 双端队列 | 📋 |
+| **list** | 双向链表 | 📋 |
+| **map/set** | 关联容器 | 📋 |
+
+**图例**：✅ 已完成 | 🔄 进行中 | 📋 计划中
+
+---
+
+## 核心特性
+
+### 1. 内存管理分离
+
+```cpp
+// ❌ 传统 new：同时分配内存和构造对象
+T* p = new T[100];  // 立即构造 100 个对象
+
+// ✅ TinySTL allocator：分离内存分配和对象构造
+T* p = allocator<T>::allocate(100);     // 只分配内存
+allocator<T>::construct(p, args...);    // 按需构造对象
+allocator<T>::destroy(p);               // 只析构对象
+allocator<T>::deallocate(p, 100);       // 只释放内存
 ```
-TinySTL/
-├── type_traits.h              # 类型特性（Type Traits）
-├── iterator.h                 # 迭代器系统
-├── allocator.h               # 空间配置器（待实现）
-├── utility.h                 # 基础工具（待实现）
-├── uninitialized.h           # 未初始化内存操作（待实现）
-├── vector.h                  # 动态数组（待实现）
-├── string/                   # 字符串实现
-│   ├── mystring.h
-│   └── mystring.cpp
-├── RB_Tree/                  # 红黑树实现
-│   ├── RB_Tree.h
-│   ├── RB_Tree_Node.h
-│   └── test.cc
-├── test/                     # 测试文件
-│   └── testSimpleVectorAndSimpleAllcator.cpp
-├── SKILLS.md                 # 学习技能文档
-├── PROJECT_ANALYSIS.md       # 项目分析报告
-└── README.md                 # 本文件
+
+### 2. 类型萃取优化
+
+```cpp
+// 利用 type_traits 进行编译期优化
+template <class T>
+void copy_impl(T* first, T* last, T* result, m_true_type) {
+    // POD 类型：使用 memmove 优化
+    memmove(result, first, (last - first) * sizeof(T));
+}
+
+template <class T>
+void copy_impl(T* first, T* last, T* result, m_false_type) {
+    // 非 POD 类型：逐个拷贝构造
+    for (; first != last; ++first, ++result) {
+        allocator<T>::construct(result, *first);
+    }
+}
+```
+
+### 3. 完美转发
+
+```cpp
+// emplace_back：直接在容器内构造对象，避免临时对象
+template <class... Args>
+void emplace_back(Args&&... args) {
+    allocator<T>::construct(end_, tinystl::forward<Args>(args)...);
+    ++end_;
+}
+```
+
+### 4. 迭代器萃取
+
+```cpp
+// 统一接口，支持原生指针和自定义迭代器
+template <class Iterator>
+typename iterator_traits<Iterator>::difference_type
+distance(Iterator first, Iterator last) {
+    // Tag Dispatch：根据迭代器类型选择最优实现
+    return distance_dispatch(first, last, iterator_category(first));
+}
 ```
 
 ---
 
-## 🚀 快速开始
+## 快速开始
 
 ### 环境要求
 
-- C++11 或更高版本的编译器（GCC 5.0+, Clang 3.4+, MSVC 2015+）
-- CMake 3.10+（可选）
+- **编译器**：支持 C++11 或更高版本（GCC 5.0+, Clang 3.4+, MSVC 2015+）
+- **构建工具**：CMake 3.10+
 
-### 编译示例
+### 一键构建
+
+#### Linux / macOS
 
 ```bash
 # 克隆仓库
 git clone https://github.com/allenmirac/TinySTL.git
 cd TinySTL
 
-# 编译测试文件
-g++ -std=c++11 test/testSimpleVectorAndSimpleAllcator.cpp -o test_allocator
-./test_allocator
+# 运行构建脚本
+chmod +x build.sh
+./build.sh
+```
 
-# 编译红黑树测试
-g++ -std=c++11 RB_Tree/test.cc -o test_rbtree
-./test_rbtree
+#### Windows
+
+```cmd
+# 克隆仓库
+git clone https://github.com/allenmirac/TinySTL.git
+cd TinySTL
+
+# 运行构建脚本
+build.bat
+```
+
+### 手动构建
+
+```bash
+# 创建构建目录
+mkdir build && cd build
+
+# 配置项目
+cmake ..
+
+# 编译
+cmake --build . --config Release
+
+# 运行测试
+ctest --output-on-failure
+```
+
+### 运行示例
+
+```bash
+# Linux/macOS
+./build/bin/example_vector
+./build/bin/example_allocator
+
+# Windows
+.\build\bin\Release\example_vector.exe
+.\build\bin\Release\example_allocator.exe
 ```
 
 ---
 
-## 📚 实现路线图
+## 使用示例
 
-### ✅ Phase 0: 基础设施（已完成 70%）
-
-#### 已实现
-- [x] **命名空间**：`namespace tinystl`
-- [x] **Type Traits**：类型特性系统
-  - `integral_constant`、`true_type`/`false_type`
-  - `enable_if`（SFINAE 条件编译）
-  - `is_same`（类型相等性判断）
-  - `is_trivially_destructible`（析构特性检测）
-  - `is_trivially_copyable`（拷贝特性检测）
-- [x] **Iterator**：迭代器系统
-  - 五种迭代器类型（Input, Output, Forward, Bidirectional, Random Access）
-  - `iterator_traits`（迭代器萃取器）
-  - `reverse_iterator`（反向迭代器）
-  - `distance` 和 `advance`（tag dispatch 优化）
-
-#### 待完善
-- [ ] 扩展更多类型的 traits 特化
-- [ ] 修复 iterator.h 中的编译错误
-
----
-
-### 🔄 Phase 1: 内存管理（1-2 周）
-
-- [ ] **allocator.h**：空间配置器
-  - `allocate` / `deallocate`（内存分配/释放）
-  - `construct` / `destroy`（对象构造/析构）
-  - 分离内存管理和对象生命周期
-  
-- [ ] **utility.h**：基础工具
-  - `move`（移动语义）
-  - `forward`（完美转发）
-  - `swap`（交换）
-  - `pair`（键值对）
-  
-- [ ] **uninitialized.h**：未初始化内存操作
-  - `uninitialized_copy`
-  - `uninitialized_fill`
-  - `uninitialized_fill_n`
-  - `uninitialized_move`
-
----
-
-### 📦 Phase 2: 序列容器（2-3 周）
-
-- [ ] **vector**：动态数组
-  - 完整的构造函数（默认、拷贝、移动、范围、初始化列表）
-  - `push_back` / `pop_back` / `emplace_back`
-  - `insert` / `erase` / `clear`
-  - `resize` / `reserve`
-  - 迭代器支持
-  - 2 倍容量增长策略
-  
-- [x] **string**：字符串（基础框架已完成）
-  - [ ] 完成所有函数实现
-  - [ ] 字符串操作（append, insert, erase, substr, find）
-  - [ ] SSO（小字符串优化）
-  - [ ] C 风格接口（c_str, data）
-  
-- [ ] **deque**：双端队列
-  - 分段连续存储（中控器 + 缓冲区）
-  - 复杂的迭代器实现
-  - `push_front` / `push_back`
-  - 随机访问支持
-
----
-
-### 🌲 Phase 3: 关联容器（2-3 周）
-
-- [x] **RB_Tree**：红黑树（基础实现已完成）
-  - [x] 插入操作和修复
-  - [x] 左旋和右旋
-  - [ ] 删除操作完善
-  - [ ] 迭代器支持
-  - [ ] 查找功能
-  - [ ] 重构为 STL 风格
-  
-- [ ] **map**：映射容器
-  - 基于红黑树实现
-  - `operator[]`（下标访问）
-  - `insert` / `erase` / `find`
-  
-- [ ] **set**：集合容器
-  - 基于红黑树实现
-  - 自动排序，不允许重复
-
----
-
-### 🔧 Phase 4: 算法（1-2 周）
-
-- [ ] **非修改序列操作**
-  - `find`, `find_if`, `count`, `count_if`
-  - `for_each`, `all_of`, `any_of`, `none_of`
-  
-- [ ] **修改序列操作**
-  - `copy`, `move`, `fill`, `transform`
-  - `remove`, `remove_if`, `unique`, `reverse`
-  
-- [ ] **排序相关**
-  - `sort`, `stable_sort`, `partial_sort`
-  - `binary_search`, `lower_bound`, `upper_bound`
-  
-- [ ] **堆操作**
-  - `make_heap`, `push_heap`, `pop_heap`, `sort_heap`
-
----
-
-## 🎓 核心概念详解
-
-### 1️⃣ Type Traits（类型特性）
-
-Type Traits 是 C++ 模板元编程的核心，用于在**编译期**查询和操作类型信息。
-
-#### 为什么需要 Type Traits？
+### Vector 示例
 
 ```cpp
-// 场景：高效拷贝数据
-template<class T>
-void copy_data(T* src, T* dst, size_t n) {
-    // POD 类型可以用 memcpy（快）
-    if constexpr (is_trivially_copyable<T>::value) {
-        memcpy(dst, src, n * sizeof(T));
-    } 
-    // 非 POD 类型必须逐个拷贝构造（安全）
-    else {
-        for (size_t i = 0; i < n; ++i) {
-            new (dst + i) T(src[i]);
-        }
+#include "vector.h"
+#include <iostream>
+
+int main() {
+    // 创建 vector
+    tinystl::vector<int> v;
+    
+    // 添加元素
+    v.push_back(1);
+    v.push_back(2);
+    v.push_back(3);
+    
+    // 使用 emplace_back（完美转发，避免临时对象）
+    v.emplace_back(4);
+    
+    // 范围 for 循环（C++11）
+    for (const auto& val : v) {
+        std::cout << val << " ";
     }
+    // 输出：1 2 3 4
+    
+    // 插入和删除
+    v.insert(v.begin() + 2, 999);  // 在位置 2 插入 999
+    v.erase(v.begin() + 1);        // 删除位置 1 的元素
+    
+    // 拷贝和移动
+    tinystl::vector<int> v2(v);              // 拷贝构造
+    tinystl::vector<int> v3(tinystl::move(v)); // 移动构造
+    
+    return 0;
 }
 ```
 
-**关键优势**：
-- ✅ 编译期决策，零运行时开销
-- ✅ 类型安全
-- ✅ 性能优化的基础
-
-#### 已实现的 Traits
-
-| Trait | 作用 | 应用场景 |
-|-------|------|----------|
-| `integral_constant` | 将编译期常量封装为类型 | 模板元编程基础 |
-| `true_type` / `false_type` | 编译期布尔标签 | Tag Dispatch |
-| `enable_if` | SFINAE 条件编译 | 约束模板参数 |
-| `is_same` | 类型相等性判断 | 类型检查 |
-| `is_trivially_destructible` | 判断是否需要显式析构 | 优化析构循环 |
-| `is_trivially_copyable` | 判断是否可用 memcpy | 优化拷贝操作 |
-
----
-
-### 2️⃣ Iterator（迭代器）
-
-迭代器是连接**容器**和**算法**的桥梁，提供统一的访问接口。
-
-#### 五种迭代器类型
-
-```
-Input Iterator          ← 单向只读
-Output Iterator         ← 单向只写
-Forward Iterator        ← 单向读写
-Bidirectional Iterator  ← 双向读写
-Random Access Iterator  ← 随机访问
-```
-
-#### Iterator Traits（迭代器萃取）
-
-**问题**：如何让算法同时支持迭代器和原生指针？
-
-**解决方案**：使用 `iterator_traits` 萃取类型信息
+### Allocator 示例
 
 ```cpp
-template<class Iterator>
-typename iterator_traits<Iterator>::difference_type
-distance(Iterator first, Iterator last) {
-    // 根据迭代器类型选择最优实现
-    return distance_dispatch(first, last, 
-        typename iterator_traits<Iterator>::iterator_category());
-}
+#include "allocator.h"
 
-// 原生指针也能工作（通过偏特化）
-int arr[10];
-int* p1 = arr;
-int* p2 = arr + 5;
-auto d = distance(p1, p2);  // ✅ 正确工作
-```
-
-#### Tag Dispatch 优化
-
-```cpp
-// Random Access Iterator：O(1)
-template<class RandomIter>
-auto distance_dispatch(RandomIter first, RandomIter last, 
-                       random_access_iterator_tag) {
-    return last - first;  // 直接相减
-}
-
-// Input Iterator：O(n)
-template<class InputIter>
-auto distance_dispatch(InputIter first, InputIter last, 
-                       input_iterator_tag) {
-    auto n = 0;
-    while (first != last) {  // 遍历计数
-        ++first;
-        ++n;
-    }
-    return n;
+int main() {
+    // 1. 分配内存（不构造对象）
+    int* ptr = tinystl::allocator<int>::allocate(10);
+    
+    // 2. 在指定位置构造对象
+    tinystl::allocator<int>::construct(ptr, 42);
+    tinystl::allocator<int>::construct(ptr + 1, 100);
+    
+    // 3. 使用对象
+    std::cout << ptr[0] << ", " << ptr[1] << std::endl;  // 42, 100
+    
+    // 4. 析构对象
+    tinystl::allocator<int>::destroy(ptr);
+    tinystl::allocator<int>::destroy(ptr + 1);
+    
+    // 5. 释放内存
+    tinystl::allocator<int>::deallocate(ptr, 10);
+    
+    return 0;
 }
 ```
 
+更多示例请查看 `examples/` 目录。
+
 ---
 
-### 3️⃣ Allocator（空间配置器）
+## 📚 文档
 
-Allocator 负责**内存管理**，是 STL 容器的基础设施。
+| 文档 | 说明 |
+|------|------|
+| [SKILLS.md](docs/SKILLS.md) | 📖 完整的学习路线图和技能文档 |
+| [PROJECT_STRUCTURE.md](docs/PROJECT_STRUCTURE.md) | 🏗️ 项目结构说明和开发指南 |
+| [PROJECT_ANALYSIS.md](docs/PROJECT_ANALYSIS.md) | 📊 项目现状分析和改进建议 |
+| [QUICK_START.md](docs/QUICK_START.md) | 🚀 5分钟快速入门指南 |
 
-#### 为什么需要 Allocator？
+### 学习路线
 
-**问题**：`new` 和 `delete` 的局限性
+详细的学习指南请参考 [SKILLS.md](docs/SKILLS.md)，包括：
 
-```cpp
-// new 做了两件事：
-T* p = new T();
-// 等价于：
-T* p = (T*)operator new(sizeof(T));  // 1️⃣ 分配内存
-new (p) T();                          // 2️⃣ 构造对象
+- ✅ STL 六大组件详解
+- ✅ 模板元编程技巧
+- ✅ 内存管理机制
+- ✅ 数据结构实现
+- ✅ 面试准备清单
 
-// 容器的需求：分离这两个操作
-vector<T> v;
-v.reserve(100);  // 只想分配内存，不想构造 100 个对象 ❌
-v.push_back(x);  // 只想在已有内存上构造 1 个对象 ❌
+---
+
+## 🏗️ 项目结构
+
+```
+TinySTL/
+├── include/                    # 头文件目录（建议）
+│   ├── allocator.h            # 空间配置器
+│   ├── algorithm.h            # 算法库
+│   ├── iterator.h             # 迭代器系统
+│   ├── type_traits.h          # 类型特性
+│   ├── utility.h              # 工具函数
+│   ├── uninitialized.h        # 未初始化内存操作
+│   └── vector.h               # vector 容器
+│
+├── test/                       # 测试目录
+│   ├── CMakeLists.txt
+│   ├── test_vector.cpp
+│   └── testSimpleVectorAndSimpleAllcator.cpp
+│
+├── examples/                   # 示例程序
+│   ├── CMakeLists.txt
+│   ├── example_vector.cpp
+│   └── example_allocator.cpp
+│
+├── CMakeLists.txt             # 根 CMake 配置
+├── build.sh                   # Linux/macOS 构建脚本
+├── build.bat                  # Windows 构建脚本
+└── README.md                  # 本文档
 ```
 
-#### Allocator 的解决方案
-
-```cpp
-// 四个核心函数
-T* memory = allocator<T>::allocate(100);     // 1️⃣ 只分配内存
-allocator<T>::construct(memory, args...);    // 2️⃣ 在指定位置构造
-allocator<T>::destroy(memory);               // 3️⃣ 只析构对象
-allocator<T>::deallocate(memory, 100);       // 4️⃣ 只释放内存
-```
-
-**关键技术**：
-- `::operator new`：只分配内存，不构造对象
-- `placement new`：在已有内存上构造对象
-- 完美转发：`std::forward<Args>(args)...`
+详细的项目结构说明请参考 [PROJECT_STRUCTURE.md](docs/PROJECT_STRUCTURE.md)。
 
 ---
 
-## 📝 学习资源
+## 面试准备
 
-### 📖 推荐阅读
-
-1. **本项目文档**
-   - [SKILLS.md](SKILLS.md) - 完整的学习路线图和技能文档
-   - [PROJECT_ANALYSIS.md](PROJECT_ANALYSIS.md) - 项目现状分析和改进建议
-   - [C++面试题-move与引用折叠.md](C++面试题-move与引用折叠.md) - 移动语义详解
-
-2. **经典书籍**
-   - 《STL 源码剖析》 - 侯捷（必读 ⭐⭐⭐⭐⭐）
-   - 《Effective STL》 - Scott Meyers
-   - 《C++ Templates》 - David Vandevoorde
-   - 《C++ Primer》 - Stanley Lippman
-
-3. **在线资源**
-   - [cppreference.com](https://en.cppreference.com/) - C++ 标准库参考
-   - [CppCon](https://www.youtube.com/user/CppCon) - C++ 会议视频
-   - [GitHub](https://github.com/topics/stl) - 其他 STL 实现
-
----
-
-## 🎯 面试准备
-
-### 常见面试题
+### 核心知识点
 
 <details>
-<summary><b>1. Vector 相关</b></summary>
+<summary><b>1. Allocator 设计</b></summary>
+
+- **Q**: 为什么要分离内存分配和对象构造？
+- **A**: 容器需要预先分配内存但不立即构造对象，提高效率和灵活性
+
+- **Q**: 什么是 placement new？
+- **A**: 在已分配的内存上构造对象，语法：`new (ptr) T(args...)`
+
+- **Q**: 完美转发的作用是什么？
+- **A**: 保持参数的值类别（左值/右值），避免不必要的拷贝
+</details>
+
+<details>
+<summary><b>2. Vector 实现</b></summary>
 
 - **Q**: vector 的扩容机制是什么？
-- **A**: 通常采用 2 倍增长策略，保证 `push_back` 的均摊时间复杂度为 O(1)
+- **A**: 通常采用 2 倍增长策略，保证 push_back 的均摊时间复杂度为 O(1)
 
 - **Q**: 什么情况下 vector 的迭代器会失效？
 - **A**: 插入、删除、扩容操作都可能导致迭代器失效
 
-- **Q**: `emplace_back` 和 `push_back` 的区别？
-- **A**: `emplace_back` 直接在容器内构造对象，避免临时对象的创建和拷贝
+- **Q**: emplace_back 和 push_back 的区别？
+- **A**: emplace_back 直接在容器内构造对象，避免临时对象的创建和拷贝
 </details>
 
 <details>
-<summary><b>2. Iterator 相关</b></summary>
+<summary><b>3. Type Traits</b></summary>
+
+- **Q**: 什么是 SFINAE？
+- **A**: Substitution Failure Is Not An Error，模板替换失败不是错误，用于条件编译
+
+- **Q**: enable_if 如何实现条件编译？
+- **A**: 通过 SFINAE 机制，当条件为 false 时，模板替换失败，该重载被排除
+
+- **Q**: type_traits 在 STL 中的优化作用？
+- **A**: 编译期判断类型特性，选择最优实现（如 POD 类型使用 memcpy）
+</details>
+
+<details>
+<summary><b>4. 迭代器系统</b></summary>
 
 - **Q**: 五种迭代器的区别？
 - **A**: 功能递增：Input/Output → Forward → Bidirectional → Random Access
 
-- **Q**: 为什么需要 `iterator_traits`？
+- **Q**: 为什么需要 iterator_traits？
 - **A**: 统一接口，让算法同时支持迭代器和原生指针
 
 - **Q**: 什么是 Tag Dispatch？
 - **A**: 根据类型标签在编译期选择不同的函数重载，实现算法优化
 </details>
 
-<details>
-<summary><b>3. 内存管理相关</b></summary>
+### 常见面试题
 
-- **Q**: allocator 的作用是什么？
-- **A**: 分离内存分配和对象构造，提供更灵活的内存管理
-
-- **Q**: 什么是 placement new？
-- **A**: 在已分配的内存上构造对象，语法：`new (ptr) T(args...)`
-
-- **Q**: 什么是内存池？
-- **A**: 预先分配大块内存，减少频繁的内存分配/释放开销
-</details>
-
-<details>
-<summary><b>4. 红黑树相关</b></summary>
-
-- **Q**: 红黑树的五个性质？
-- **A**: 1) 节点是红或黑 2) 根是黑 3) 叶子(NIL)是黑 4) 红节点的子节点是黑 5) 任一节点到叶子的路径包含相同数量的黑节点
-
-- **Q**: 红黑树 vs AVL 树？
-- **A**: 红黑树插入/删除更快（最多 3 次旋转），AVL 树查找更快（更平衡）
-
-- **Q**: map vs unordered_map？
-- **A**: map 基于红黑树（有序，O(log n)），unordered_map 基于哈希表（无序，O(1)）
-</details>
+- vector 的扩容机制是什么？
+- emplace_back 和 push_back 的区别？
+- 为什么需要 allocator？
+- 什么是迭代器失效？
+- 如何实现一个线程安全的容器？
+- 红黑树的五个性质是什么？
+- map vs unordered_map 的区别？
 
 ---
 
-## 🤝 贡献指南
+## 📋 待完成功能
+
+### 容器
+- [ ] deque - 双端队列
+- [ ] list - 双向链表
+- [ ] map/set - 基于红黑树
+- [ ] unordered_map/set - 基于哈希表
+- [ ] stack/queue - 容器适配器
+
+### 算法
+- [ ] 排序算法（sort, stable_sort, partial_sort）
+- [ ] 查找算法（find, binary_search, lower_bound）
+- [ ] 堆算法（make_heap, push_heap, pop_heap）
+- [ ] 数值算法（accumulate, inner_product）
+
+### 高级特性
+- [ ] 内存池
+- [ ] 线程安全容器
+- [ ] 异常安全保证
+- [ ] 性能基准测试
+
+---
+
+## 项目亮点
+
+### 1. 教育性设计
+- ✅ 清晰的代码注释
+- ✅ 详细的实现说明
+- ✅ 完整的测试用例
+- ✅ 面试要点总结
+
+### 2. 现代 C++ 特性
+- ✅ 右值引用和移动语义
+- ✅ 完美转发
+- ✅ 变参模板
+- ✅ SFINAE 和 enable_if
+
+### 3. 性能优化
+- ✅ POD 类型优化（memcpy/memmove）
+- ✅ Tag Dispatch（编译期分发）
+- 🔄 小对象优化（计划中）
+- 🔄 内存池（计划中）
+
+---
+
+## 参考资料
+
+### 书籍
+- 《STL 源码剖析》- 侯捷（必读 ⭐⭐⭐⭐⭐）
+- 《Effective STL》- Scott Meyers
+- 《C++ Templates》- David Vandevoorde
+- 《C++ Primer》- Stanley Lippman
+
+### 在线资源
+- [cppreference.com](https://en.cppreference.com/) - C++ 标准库参考
+- [CppCon](https://www.youtube.com/user/CppCon) - C++ 会议视频
+- [GitHub](https://github.com/topics/stl) - 其他 STL 实现
+
+---
+
+## 贡献指南
 
 欢迎贡献代码、报告问题或提出建议！
 
@@ -438,39 +449,33 @@ allocator<T>::deallocate(memory, 100);       // 4️⃣ 只释放内存
 
 ---
 
-## 📊 项目进度
+## 项目进度
 
-| 模块 | 状态 | 完成度 | 说明 |
-|------|------|--------|------|
-| type_traits.h | ✅ 已完成 | 70% | 需扩展更多类型特化 |
-| iterator.h | ✅ 已完成 | 75% | 需修复编译错误 |
-| allocator.h | 🔄 进行中 | 0% | 待实现 |
-| utility.h | 📋 计划中 | 0% | 待实现 |
-| vector.h | 📋 计划中 | 0% | 待实现 |
-| string | 🔄 进行中 | 20% | 基础框架完成 |
-| deque.h | 📋 计划中 | 0% | 待实现 |
-| RB_Tree | ✅ 已完成 | 60% | 需重构和完善 |
-| map / set | 📋 计划中 | 0% | 待实现 |
-| algorithm.h | 📋 计划中 | 0% | 待实现 |
-
-**图例**：✅ 已完成 | 🔄 进行中 | 📋 计划中
+| 模块 | 完成度 | 状态 |
+|------|--------|------|
+| 基础设施 | 100% | ✅ 完成 |
+| vector | 100% | ✅ 完成 |
+| string | 20% | 🔄 进行中 |
+| rb_tree | 60% | 🔄 进行中 |
+| 其他容器 | 0% | 📋 计划中 |
+| **总体** | **60%** | **🔄 进行中** |
 
 ---
 
-## 📄 许可证
+## 许可证
 
 本项目采用 MIT 许可证 - 详见 [LICENSE](LICENSE) 文件
 
 ---
 
-## 👨‍💻 作者
+## 作者
 
 - **GitHub**: [@allenmirac](https://github.com/allenmirac)
 - **项目地址**: [TinySTL](https://github.com/allenmirac/TinySTL)
 
 ---
 
-## 🙏 致谢
+## 致谢
 
 - 感谢侯捷老师的《STL 源码剖析》
 - 感谢所有为 C++ 社区做出贡献的开发者
@@ -484,4 +489,5 @@ allocator<T>::deallocate(memory, 100);       // 4️⃣ 只释放内存
 
 Made with ❤️ by [allenmirac](https://github.com/allenmirac)
 
+**开始你的 STL 学习之旅吧！** 
 </div>
